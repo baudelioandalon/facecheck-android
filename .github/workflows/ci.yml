@@ -1,0 +1,117 @@
+name: CI
+
+# Compila y prueba. No publica: subir a Maven Central es una acción manual
+# desde una máquina que tenga la llave GPG y las credenciales del portal.
+# Ver la sección "Publicar" del README.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Lunes 13:00 UTC. El job `mirror` es el único que puede ponerse en rojo sin
+    # que nadie haya tocado este repo: sirve para enterarse de que facecheck-kmp
+    # avanzó, no de que aquí se rompió algo.
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  build:
+    name: Compilar y probar (JDK 21)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configurar el SDK de Android
+        uses: android-actions/setup-android@v3
+
+      # Las dos versiones están fijadas en gradle/libs.versions.toml a
+      # propósito. Instalarlas aquí explícitamente es lo que evita que el build
+      # se baje solo un build-tools bajo una licencia que nadie aceptó.
+      - name: Instalar platform 36 y build-tools 36.1.0
+        run: |
+          sdkmanager --install "platforms;android-36" "build-tools;36.1.0"
+
+      # `build` ya incluye `check`, que a su vez depende de verifyMirror: si
+      # alguien editó facecheck-android/mirror/ a mano, aquí truena.
+      - name: Compilar
+        run: ./gradlew build -x test --stacktrace
+
+      - name: Probar
+        run: ./gradlew test --stacktrace
+
+      - name: Publicar a un repositorio local (ensayo del POM, no sube nada)
+        run: ./gradlew publishAllPublicationsToLocalStagingRepository --stacktrace
+
+      - name: Guardar reportes de prueba
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/**'
+          if-no-files-found: ignore
+
+  # -----------------------------------------------------------------------
+  # mirror
+  #
+  # verifyMirror (arriba, dentro de `build`) comprueba que mirror/ coincide con
+  # MIRROR.lock, o sea que nadie editó el espejo a mano. Eso NO detecta que
+  # facecheck-kmp haya avanzado y este repo se haya quedado atrás.
+  #
+  # Este job sí: vuelve a correr tools/sync-from-kmp.sh contra el upstream real
+  # y falla si el resultado no es byte por byte lo que hay aquí.
+  # -----------------------------------------------------------------------
+  mirror:
+    name: El espejo sigue igual a facecheck-kmp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Leer la URL del upstream de gradle.properties
+        id: upstream
+        run: |
+          url="$(sed -n 's/^FACECHECK_KMP_REPO=//p' gradle.properties | head -1)"
+          if [ -z "$url" ]; then
+            echo "::error::gradle.properties no define FACECHECK_KMP_REPO"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      # Mientras facecheck-kmp no exista públicamente esto avisa en vez de
+      # tronar; en cuanto exista, el paso siguiente se vuelve obligatorio y
+      # cualquier divergencia pone el job en rojo.
+      - name: ¿El upstream ya está publicado?
+        id: probe
+        run: |
+          if git ls-remote --exit-code "${{ steps.upstream.outputs.url }}" >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::${{ steps.upstream.outputs.url }} no es accesible todavía; \
+            no se pudo comprobar si mirror/ está al día. Verifícalo a mano con \
+            tools/sync-from-kmp.sh ../facecheck-kmp --check"
+          fi
+
+      - name: Comparar mirror/ contra facecheck-kmp
+        if: steps.probe.outputs.available == 'true'
+        run: |
+          tools/sync-from-kmp.sh "${{ steps.upstream.outputs.url }}" --check
