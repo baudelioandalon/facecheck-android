@@ -48,6 +48,23 @@ EXCLUDE_ANDROID=(
 EXCLUDE_TEST=(
     "kotlin/com/borealnetwork/facecheck/SubjectIdTest.kt"
 )
+# These seams are implemented natively in this repository. Their KMP sources
+# are pinned so a sync cannot silently accept a changed contract that the
+# Android replacement has not deliberately reviewed and updated.
+EXCLUDED_PATHS=(
+    "commonMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt"
+    "androidMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt"
+    "commonMain/kotlin/com/borealnetwork/facecheck/SubjectId.kt"
+    "androidMain/kotlin/com/borealnetwork/facecheck/SubjectId.android.kt"
+    "commonTest/kotlin/com/borealnetwork/facecheck/SubjectIdTest.kt"
+)
+EXCLUDED_SHA256=(
+    "b6049402483164112ddf0ef8a031461175209b6176b09ee707206778cb7b5f3b"
+    "fe6c52675eedbe12d3f13fcd0a2606ee23c16cde3e76040976d169ea6c548eb1"
+    "1288ff5ffeab681825c4e1b760c08eb1304e38ac374fd3cf68a8f748006cd8e6"
+    "56a354fa7a02a1a1dc7b5061566748888947132ead3db49407c2995d32477bd9"
+    "7755208b8e900a9adcd81f86d7bb989cc1731734e247381010f7a3f1d31dbc48"
+)
 
 CHECK_ONLY=0
 UPSTREAM_ARG="${1:-}"
@@ -92,10 +109,16 @@ if [[ "$(git -C "$UPSTREAM" rev-parse --show-toplevel 2>/dev/null || true)" == "
     UPSTREAM_REV="$(git -C "$UPSTREAM" rev-parse HEAD)"
 fi
 
+if command -v sha256sum >/dev/null 2>&1; then
+    sha256() { sha256sum "$1" | cut -d' ' -f1; }
+else
+    sha256() { shasum -a 256 "$1" | cut -d' ' -f1; }
+fi
+
 # --- 2. Comprobar que las exclusiones siguen existiendo allá arriba -----------
 
-for excluded in "${EXCLUDE_COMMON[@]}"; do
-    pair="commonMain/$excluded"
+for index in "${!EXCLUDED_PATHS[@]}"; do
+    pair="${EXCLUDED_PATHS[$index]}"
     if [[ ! -f "$SRC_MODULE/$pair" ]]; then
         cat >&2 <<EOF
 error: el upstream ya no tiene $pair
@@ -107,30 +130,15 @@ error: el upstream ya no tiene $pair
 EOF
         exit 1
     fi
-done
-for excluded in "${EXCLUDE_ANDROID[@]}"; do
-    pair="androidMain/$excluded"
-    if [[ ! -f "$SRC_MODULE/$pair" ]]; then
+    actual_hash="$(sha256 "$SRC_MODULE/$pair")"
+    expected_hash="${EXCLUDED_SHA256[$index]}"
+    if [[ "$actual_hash" != "$expected_hash" ]]; then
         cat >&2 <<EOF
-error: el upstream ya no tiene $pair
+error: cambió una costura excluida: $pair
 
-  Este archivo es el que aísla todo el expect/actual del SDK, y este espejo lo
-  excluye por nombre. Si se renombró o se partió, actualiza EXCLUDE_COMMON /
-  EXCLUDE_ANDROID en este script antes de volver a sincronizar. Copiarlo tal
-  cual rompería la compilación del módulo Android.
-EOF
-        exit 1
-    fi
-done
-for excluded in "${EXCLUDE_TEST[@]}"; do
-    pair="commonTest/$excluded"
-    if [[ ! -f "$SRC_MODULE/$pair" ]]; then
-        cat >&2 <<EOF
-error: el upstream ya no tiene $pair
-
-  Este test depende de auxiliares que se excluyen del espejo junto con el
-  expect/actual de SubjectId. Actualiza EXCLUDE_TEST y la prueba Android propia
-  antes de volver a sincronizar si se renombra o se divide.
+  El espejo Android usa un equivalente propio de este archivo. Revisa ambos,
+  actualiza la implementación/prueba Android si corresponde y sólo entonces
+  actualiza el SHA-256 aprobado en EXCLUDED_SHA256.
 EOF
         exit 1
     fi
@@ -167,7 +175,7 @@ cp "$UPSTREAM/facecheck-kmp/consumer-rules.pro" "$STAGE/consumer-rules.pro"
 # Los nombres se reportan relativos al espejo, no al temporal en el que se armó:
 # quien lea el error necesita saber qué archivo de facecheck-kmp abrir, no en qué
 # carpeta de /var/folders quedó la copia de trabajo.
-if leftovers="$(grep -rlE '^[[:space:]]*(internal[[:space:]]+)?(expect|actual)[[:space:]]' "$STAGE" \
+if leftovers="$(grep -rlE '^[[:space:]]*((public|internal|private|protected|open|final|abstract|sealed|data|inline|value|annotation|external)[[:space:]]+)*(expect|actual)[[:space:]]' "$STAGE" \
                 | sed "s|^$STAGE/||" | LC_ALL=C sort || true)" \
    && [[ -n "$leftovers" ]]; then
     cat >&2 <<EOF
@@ -188,12 +196,6 @@ fi
 
 # --- 5. MIRROR.lock ----------------------------------------------------------
 
-if command -v sha256sum >/dev/null 2>&1; then
-    sha256() { sha256sum "$1" | cut -d' ' -f1; }
-else
-    sha256() { shasum -a 256 "$1" | cut -d' ' -f1; }
-fi
-
 STAGE_LOCK="$TMP_ROOT/MIRROR.lock"
 {
     echo "# Generado por tools/sync-from-kmp.sh. No editar a mano."
@@ -211,6 +213,9 @@ STAGE_LOCK="$TMP_ROOT/MIRROR.lock"
     done
     for excluded in "${EXCLUDE_TEST[@]}"; do
         echo "excluded = facecheck-kmp/src/commonTest/$excluded"
+    done
+    for index in "${!EXCLUDED_PATHS[@]}"; do
+        echo "excluded_sha256 = ${EXCLUDED_SHA256[$index]}  facecheck-kmp/src/${EXCLUDED_PATHS[$index]}"
     done
     echo "---"
     (cd "$STAGE" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) | while read -r rel; do

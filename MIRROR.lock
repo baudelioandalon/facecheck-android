@@ -10,6 +10,11 @@ excluded = facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/Subje
 excluded = facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt
 excluded = facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/SubjectId.android.kt
 excluded = facecheck-kmp/src/commonTest/kotlin/com/borealnetwork/facecheck/SubjectIdTest.kt
+excluded_sha256 = b6049402483164112ddf0ef8a031461175209b6176b09ee707206778cb7b5f3b  facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt
+excluded_sha256 = fe6c52675eedbe12d3f13fcd0a2606ee23c16cde3e76040976d169ea6c548eb1  facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt
+excluded_sha256 = 1288ff5ffeab681825c4e1b760c08eb1304e38ac374fd3cf68a8f748006cd8e6  facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/SubjectId.kt
+excluded_sha256 = 56a354fa7a02a1a1dc7b5061566748888947132ead3db49407c2995d32477bd9  facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/SubjectId.android.kt
+excluded_sha256 = 7755208b8e900a9adcd81f86d7bb989cc1731734e247381010f7a3f1d31dbc48  facecheck-kmp/src/commonTest/kotlin/com/borealnetwork/facecheck/SubjectIdTest.kt
 ---
 417b8afc2b87ecd947b0a7037ce844c3dc06c26240cd4ed0496faa7f903873c5  consumer-rules.pro
 1b147d6be00ead8e03f9fc0daa1b4e4b6ab1ca9635c451fc3ea1fa24607b15b4  main/AndroidManifest.xml
