@@ -4,14 +4,17 @@
 # La tarea Gradle verifyMirror lo revalida en cada ./gradlew check.
 upstream = facecheck-kmp
 upstream_version = 0.1.0
-upstream_rev = no-versionado
+upstream_rev = 59ea101a12c2502ffd8d4e595c0801d76b50e282
 excluded = facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt
+excluded = facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/SubjectId.kt
 excluded = facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt
+excluded = facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/SubjectId.android.kt
+excluded = facecheck-kmp/src/commonTest/kotlin/com/borealnetwork/facecheck/SubjectIdTest.kt
 ---
 417b8afc2b87ecd947b0a7037ce844c3dc06c26240cd4ed0496faa7f903873c5  consumer-rules.pro
 1b147d6be00ead8e03f9fc0daa1b4e4b6ab1ca9635c451fc3ea1fa24607b15b4  main/AndroidManifest.xml
-fbc61145152a2aa0f39cb051e7b7471eb044775ae177d8bfb0a2b7b202c404f9  main/kotlin/com/borealnetwork/facecheck/FaceCheck.kt
-b28c8ce5fe6c0bff475d9f7adb3ec558c447e878fdf9ed0af6e6486c21f3db3e  main/kotlin/com/borealnetwork/facecheck/FaceCheckConfig.kt
+b954e4b68795632e32b519f1ef6a08d00757a6ae5d1cc566cc9e28a4153aa9ae  main/kotlin/com/borealnetwork/facecheck/FaceCheck.kt
+186d514263242dd18bf84b26bac487b6f1658ab886b36c941e0a9c005fd84808  main/kotlin/com/borealnetwork/facecheck/FaceCheckConfig.kt
 2a13699984c15c1af6f634f401b9d7f33fda154e4ec98a880d3e58b6d07b7f82  main/kotlin/com/borealnetwork/facecheck/FaceCheckLogger.kt
 96143dda9a1849b31fe71eb58906426ec6c163d0394b07822a15f27500e14e7d  main/kotlin/com/borealnetwork/facecheck/camera/AnalysisMirroring.kt
 03dc8a2488f846a21ceb2f23e265b3ac3a699b6628e7e9cfd3666901ef44104f  main/kotlin/com/borealnetwork/facecheck/camera/AndroidCameraController.kt
@@ -27,11 +30,11 @@ edbe85692c5f14f5a8edaccfe5923c27074ae145cd4a91674c94171b2fc46bf0  main/kotlin/co
 9dc69b1e449168ae034f655239e7013b844aa244844e0b448a7c5d2dc12feaa6  main/kotlin/com/borealnetwork/facecheck/liveness/LivenessSession.kt
 9841adee0bb7ae442f8d88f25f49a8ac2644c9768b58dbc55bc80b64454f11cb  main/kotlin/com/borealnetwork/facecheck/liveness/LivenessState.kt
 039d34ff287a8a33975ec7e40f79a1ec203a7c4397da84aad6de01fb0df551f6  main/kotlin/com/borealnetwork/facecheck/model/CompareWith.kt
-b227fdbc605af42d3025a438298df6816bbffea8a9d36610a0fa22619b63617b  main/kotlin/com/borealnetwork/facecheck/model/EnrollResult.kt
-dbf8d4a1224e069485a9ed68628adc8c6c9ef11fa4d1d9a2e9fd7390721bb125  main/kotlin/com/borealnetwork/facecheck/model/FaceCheckException.kt
+73bd9320c9cce180d2ae12d3a5ece8e01bea610397fadcaa07eb16df1010795e  main/kotlin/com/borealnetwork/facecheck/model/EnrollResult.kt
+6a80320d306e12c4ffa34e58515f3904a21c03c55caf4a5a1988eef2c62879c2  main/kotlin/com/borealnetwork/facecheck/model/FaceCheckException.kt
 34834fcde4357790286aa0057694634588b1651d5a74b8ba45ea33f6ef05f60b  main/kotlin/com/borealnetwork/facecheck/model/FaceQuality.kt
 6c79f5b61181103cb34cbfc80c3b91c13fe069a8eead7e779aa15f6b7e9c6de9  main/kotlin/com/borealnetwork/facecheck/model/VerifyResult.kt
-9b8b1640818935377afe9e460d5b1ab0c5f8a0fce2ca049e4d4fc3f010e2594f  main/kotlin/com/borealnetwork/facecheck/net/FaceCheckApi.kt
+e5a68b30930eedc9bcb2d2e5b0e6c3974cdf4ec36ce3995a885a5fc6b348b565  main/kotlin/com/borealnetwork/facecheck/net/FaceCheckApi.kt
 c67a79b561bc1d2e74ec75027af2e90defb541ff86666b584a628389982d4e1c  test/kotlin/com/borealnetwork/facecheck/FaceCheckConfigTest.kt
 585e01563c96d8c0321dc5c05dae7df4889ded3bdf3388e8e612fd70ba5b8646  test/kotlin/com/borealnetwork/facecheck/FaceCheckLoggerTest.kt
 e53e074e298d7aaebb852cf4502f45e980ff4cf2fe2c581f0d745e21add34014  test/kotlin/com/borealnetwork/facecheck/camera/LumaSamplingTest.kt
@@ -39,4 +42,4 @@ b980747e17debd3f5dedc82dc6dd1acddaaa8b22719850e3c867113fdea3daa4  test/kotlin/co
 85580d13e6d1b4b7ff7033836744471f5f48403afa1584ec7df6b644316edced  test/kotlin/com/borealnetwork/facecheck/liveness/ChallengePlanTest.kt
 ad561525951086fb6ad92a02ece3e8d6e58f4e43a4f6e4340dce50d9d731c0b4  test/kotlin/com/borealnetwork/facecheck/liveness/Frames.kt
 9697016dbe28e866b582ff33c6c93fdcac9026395bea8e47d6b2440197c529f0  test/kotlin/com/borealnetwork/facecheck/liveness/LivenessSessionTest.kt
-95293b38f7634e6b7374b23d94bf96e227ac2fe90b23eca75754326f502509b3  test/kotlin/com/borealnetwork/facecheck/net/FaceCheckApiTest.kt
+6b8ffd6908ac3452304d6b509a567be85bf6a5b3490937d270937d8258964a3a  test/kotlin/com/borealnetwork/facecheck/net/FaceCheckApiTest.kt

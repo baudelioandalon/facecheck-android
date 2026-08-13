@@ -35,11 +35,19 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIRROR_DIR="$REPO_ROOT/facecheck-android/mirror"
 LOCK_FILE="$REPO_ROOT/MIRROR.lock"
 
-# Los dos archivos que contienen todo el expect/actual del SDK. El módulo
-# Android los reemplaza por src/main/kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt,
-# que es código propio de este repo y está fuera del espejo.
-EXCLUDE_COMMON="kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt"
-EXCLUDE_ANDROID="kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt"
+# Los únicos expect/actual del SDK. El módulo Android los reemplaza por
+# equivalentes sin expect/actual bajo src/main/kotlin/, fuera del espejo.
+EXCLUDE_COMMON=(
+    "kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt"
+    "kotlin/com/borealnetwork/facecheck/SubjectId.kt"
+)
+EXCLUDE_ANDROID=(
+    "kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt"
+    "kotlin/com/borealnetwork/facecheck/SubjectId.android.kt"
+)
+EXCLUDE_TEST=(
+    "kotlin/com/borealnetwork/facecheck/SubjectIdTest.kt"
+)
 
 CHECK_ONLY=0
 UPSTREAM_ARG="${1:-}"
@@ -86,7 +94,8 @@ fi
 
 # --- 2. Comprobar que las exclusiones siguen existiendo allá arriba -----------
 
-for pair in "commonMain/$EXCLUDE_COMMON" "androidMain/$EXCLUDE_ANDROID"; do
+for excluded in "${EXCLUDE_COMMON[@]}"; do
+    pair="commonMain/$excluded"
     if [[ ! -f "$SRC_MODULE/$pair" ]]; then
         cat >&2 <<EOF
 error: el upstream ya no tiene $pair
@@ -99,27 +108,56 @@ EOF
         exit 1
     fi
 done
+for excluded in "${EXCLUDE_ANDROID[@]}"; do
+    pair="androidMain/$excluded"
+    if [[ ! -f "$SRC_MODULE/$pair" ]]; then
+        cat >&2 <<EOF
+error: el upstream ya no tiene $pair
+
+  Este archivo es el que aísla todo el expect/actual del SDK, y este espejo lo
+  excluye por nombre. Si se renombró o se partió, actualiza EXCLUDE_COMMON /
+  EXCLUDE_ANDROID en este script antes de volver a sincronizar. Copiarlo tal
+  cual rompería la compilación del módulo Android.
+EOF
+        exit 1
+    fi
+done
+for excluded in "${EXCLUDE_TEST[@]}"; do
+    pair="commonTest/$excluded"
+    if [[ ! -f "$SRC_MODULE/$pair" ]]; then
+        cat >&2 <<EOF
+error: el upstream ya no tiene $pair
+
+  Este test depende de auxiliares que se excluyen del espejo junto con el
+  expect/actual de SubjectId. Actualiza EXCLUDE_TEST y la prueba Android propia
+  antes de volver a sincronizar si se renombra o se divide.
+EOF
+        exit 1
+    fi
+done
 
 # --- 3. Armar el espejo en un temporal ---------------------------------------
 
 STAGE="$TMP_ROOT/mirror"
 mkdir -p "$STAGE/main" "$STAGE/test"
 
-copy_tree() {  # copy_tree <origen> <destino> [ruta-relativa-a-excluir]
-    local from="$1" to="$2" excluded="${3:-}"
+copy_tree() {  # copy_tree <origen> <destino> [rutas-relativas-a-excluir...]
+    local from="$1" to="$2"
+    shift 2
     mkdir -p "$to"
-    if [[ -n "$excluded" ]]; then
-        rsync -a --exclude "$excluded" "$from/" "$to/"
-    else
-        rsync -a "$from/" "$to/"
-    fi
+    local args=(-a)
+    for excluded in "$@"; do args+=(--exclude "$excluded"); done
+    rsync "${args[@]}" "$from/" "$to/"
 }
 
 copy_tree "$SRC_MODULE/commonMain/kotlin" "$STAGE/main/kotlin" \
-    "com/borealnetwork/facecheck/camera/CameraHost.kt"
+    "com/borealnetwork/facecheck/camera/CameraHost.kt" \
+    "com/borealnetwork/facecheck/SubjectId.kt"
 copy_tree "$SRC_MODULE/androidMain/kotlin" "$STAGE/main/kotlin" \
-    "com/borealnetwork/facecheck/camera/CameraHost.android.kt"
-copy_tree "$SRC_MODULE/commonTest/kotlin" "$STAGE/test/kotlin"
+    "com/borealnetwork/facecheck/camera/CameraHost.android.kt" \
+    "com/borealnetwork/facecheck/SubjectId.android.kt"
+copy_tree "$SRC_MODULE/commonTest/kotlin" "$STAGE/test/kotlin" \
+    "com/borealnetwork/facecheck/SubjectIdTest.kt"
 
 cp "$SRC_MODULE/androidMain/AndroidManifest.xml" "$STAGE/main/AndroidManifest.xml"
 cp "$UPSTREAM/facecheck-kmp/consumer-rules.pro" "$STAGE/consumer-rules.pro"
@@ -165,8 +203,15 @@ STAGE_LOCK="$TMP_ROOT/MIRROR.lock"
     echo "upstream = facecheck-kmp"
     echo "upstream_version = $UPSTREAM_VERSION"
     echo "upstream_rev = $UPSTREAM_REV"
-    echo "excluded = facecheck-kmp/src/commonMain/$EXCLUDE_COMMON"
-    echo "excluded = facecheck-kmp/src/androidMain/$EXCLUDE_ANDROID"
+    for excluded in "${EXCLUDE_COMMON[@]}"; do
+        echo "excluded = facecheck-kmp/src/commonMain/$excluded"
+    done
+    for excluded in "${EXCLUDE_ANDROID[@]}"; do
+        echo "excluded = facecheck-kmp/src/androidMain/$excluded"
+    done
+    for excluded in "${EXCLUDE_TEST[@]}"; do
+        echo "excluded = facecheck-kmp/src/commonTest/$excluded"
+    done
     echo "---"
     (cd "$STAGE" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) | while read -r rel; do
         echo "$(sha256 "$STAGE/$rel")  $rel"
