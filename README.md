@@ -21,7 +21,7 @@ servidor; el dispositivo nunca ve un score ni un umbral. Un `VerifyResult` con
 |---|---|
 | Artefacto | `org.borealnetwork:facecheck-android` |
 | Paquete | `com.borealnetwork.facecheck` |
-| Versión | `0.1.0` |
+| Versión | `1.0.0` |
 | Licencia | Apache 2.0 |
 | `minSdk` | 24 |
 | `compileSdk` | 36 |
@@ -49,7 +49,7 @@ En `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-facecheck = "0.1.0"
+facecheck = "1.0.0"
 
 [libraries]
 facecheck-android = { module = "org.borealnetwork:facecheck-android", version.ref = "facecheck" }
@@ -66,7 +66,7 @@ dependencies {
 O directo, sin catálogo:
 
 ```kotlin
-implementation("org.borealnetwork:facecheck-android:0.1.0")
+implementation("org.borealnetwork:facecheck-android:1.0.0")
 ```
 
 El SDK arrastra CameraX y el detector facial de ML Kit **empaquetado** (no el de
@@ -103,7 +103,7 @@ lifecycleScope.launch {
 lifecycleScope.launch {
     try {
         val result = FaceCheck.verify(
-            email = "persona@ejemplo.com",
+            subjectId = "sub_ABCDEFGHIJ_abcdefghijklmnopqrstuv",
             camera = camera,
             machine = machine,
         )
@@ -129,6 +129,11 @@ Con una llave `lk_live_` hace falta además un **grant** firmado por tu propio
 backend: la llave de API viaja dentro del APK y por lo tanto no prueba nada
 sobre quién está llamando. Ver
 [Grants de registro](https://facecheck.borealnetwork.org/docs/grants).
+
+Un `subjectId` es opaco y no es un correo. `SubjectId.generate(apiKey)` produce
+exactamente `sub_<huella>_<aleatorio>`: 10 caracteres Base32 de SHA-256 de la
+llave y 16 bytes criptográficamente seguros como 22 caracteres Base64URL sin
+relleno. Guarda el resultado asociado a la cuenta de tu producto.
 
 Un ejemplo completo y compilable vive en el repo multiplataforma:
 [`samples/android-quickstart`](https://github.com/baudelioandalon/facecheck-kmp/tree/main/samples/android-quickstart).
@@ -333,7 +338,7 @@ upstream de la que salió. Es generado; no se edita a mano.
 - ¿`verifyMirror` está fallando? → no edites `MIRROR.lock` para callarlo. O
   lleva tu cambio al upstream, o vuelve a correr el script.
 - ¿Vas a publicar? → **la misma versión en los dos repos, con el espejo al
-  día.** Que `0.1.0` signifique el mismo código en `facecheck-kmp` y en
+  día.** Que `1.0.0` signifique el mismo código en `facecheck-kmp` y en
   `facecheck-android` es todo el punto.
 
 ---

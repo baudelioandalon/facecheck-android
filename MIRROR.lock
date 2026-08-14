@@ -3,8 +3,8 @@
 # Cada línea es <sha256>  <ruta relativa a facecheck-android/mirror>.
 # La tarea Gradle verifyMirror lo revalida en cada ./gradlew check.
 upstream = facecheck-kmp
-upstream_version = 0.1.0
-upstream_rev = 59ea101a12c2502ffd8d4e595c0801d76b50e282
+upstream_version = 1.0.0
+upstream_rev = 6e70289c278e9f055830809eddb6d1ea5dc18324
 excluded = facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.kt
 excluded = facecheck-kmp/src/commonMain/kotlin/com/borealnetwork/facecheck/SubjectId.kt
 excluded = facecheck-kmp/src/androidMain/kotlin/com/borealnetwork/facecheck/camera/CameraHost.android.kt
